@@ -1,0 +1,4 @@
+baseURL = 'https://example.org/'
+languageCode = 'en-us'
+title = 'Ann Wang 1660 Site'
+theme = 'ananke'
