@@ -1,18 +1,44 @@
 name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [push]
+on:
+  push:
+    branches:
+      - main  # Set a branch to deploy
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
-  Explore-GitHub-Actions:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-22.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
-        uses: actions/checkout@v4
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
-        run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+      - uses: actions/checkout@v4
+        with:
+          submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+
+      # build you static site here if needed
+      # - id: 'build'
+      #   name: 'Build'
+      #   run: |
+      #     hugo --gc --minify
+
+
+      # configure gcloud `setup-gcloud` automatically
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/427902314716/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
+          service_account: 'my-service-account@rock-star-406000.iam.gserviceaccount.com' # UPDATE THIS TO YOUR SERVICE ACCOUNT
+
+      # upload files to GCS
+      - id: 'upload-static-files'
+        uses: 'google-github-actions/upload-cloud-storage@v1'
+        with:
+          path: 'quickstart/public' # UPDATE THIS TO YOUR BUILD/FILES DIRECTORY
+          destination: 'site-host-bucket' # UPDATE THIS TO YOUR BUCKET NAME
+          parent: false
